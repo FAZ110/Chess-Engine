@@ -10,6 +10,67 @@ piece_values = {
     chess.KING: 900
 }
 
+pawntable = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, -20, -20, 10, 10,  5,
+    5, -5, -10,  0,  0, -10, -5,  5,
+    0,  0,  0, 20, 20,  0,  0,  0,
+    5,  5, 10, 25, 25, 10,  5,  5,
+    10, 10, 20, 30, 30, 20, 10, 10,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    0,  0,  0,  0,  0,  0,  0,  0]
+
+knightstable = [
+    -50, -40, -30, -30, -30, -30, -40, -50,
+    -40, -20,   0,   5,   5,   0, -20, -40,
+    -30,   5,  10,  15,  15,  10,   5, -30,
+    -30,   0,  15,  20,  20,  15,   0, -30,
+    -30,   5,  15,  20,  20,  15,   5, -30,
+    -30,   0,  10,  15,  15,  10,   0, -30,
+    -40, -20,   0,   0,   0,   0, -20, -40,
+    -50, -40, -30, -30, -30, -30, -40, -50]
+
+bishopstable = [
+    -20, -10, -10, -10, -10, -10, -10, -20,
+    -10,   0,   0,   0,   0,   0,   0, -10,
+    -10,   0,   5,  10,  10,   5,   0, -10,
+    -10,   5,   5,  10,  10,   5,   5, -10,
+    -10,   0,  10,  10,  10,  10,   0, -10,
+    -10,  10,  10,  10,  10,  10,  10, -10,
+    -10,   5,   0,   0,   0,   0,   5, -10,
+    -20, -10, -10, -10, -10, -10, -10, -20]
+
+rookstable = [
+      0,  0,  0,  0,  0,  0,  0,  0,
+      5, 10, 10, 10, 10, 10, 10,  5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+      0,  0,  0,  5,  5,  0,  0,  0]
+
+queenstable = [
+    -20, -10, -10, -5, -5, -10, -10, -20,
+    -10,   0,   0,  0,  0,   0,   0, -10,
+    -10,   0,   5,  5,  5,   5,   0, -10,
+     -5,   0,   5,  5,  5,   5,   0, -5,
+      0,   0,   5,  5,  5,   5,   0, -5,
+    -10,   5,   5,  5,  5,   5,   0, -10,
+    -10,   0,   5,  0,  0,   0,   0, -10,
+    -20, -10, -10, -5, -5, -10, -10, -20]
+
+kingstable = [
+     20,  30,  10,   0,   0,  10,  30,  20,
+     20,  20,   0,   0,   0,   0,  20,  20,
+    -10, -20, -20, -20, -20, -20, -20, -10,
+    -20, -30, -30, -40, -40, -30, -30, -20,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -30, -40, -40, -50, -50, -40, -40, -30,
+    -30, -40, -40, -50, -50, -40, -40, -30]
+
+
 # Simple rating the board by pieces values
 def evaluate_board(board):
     if board.is_checkmate():
@@ -18,16 +79,51 @@ def evaluate_board(board):
     
     score = 0
 
+    
     for square in chess.SQUARES:
         piece = board.piece_at(square)
+        if piece is None: continue
+        
+        # Base value
+        score += piece_values[piece.piece_type] if piece.color == chess.WHITE else -piece_values[piece.piece_type]
 
-        if piece:
-            value = piece_values[piece.piece_type]
-
+        # Positional value
+        if piece.piece_type == chess.PAWN:
             if piece.color == chess.WHITE:
-                score += value
+                score += pawntable[square]
             else:
-                score -= value
+                # Mirror the square index for Black (63 - square)
+                score -= pawntable[chess.square_mirror(square)]
+        
+        elif piece.piece_type == chess.KNIGHT:
+            if piece.color == chess.WHITE:
+                score += knightstable[square]
+            else:
+                score -= knightstable[chess.square_mirror(square)]
+
+        elif piece.piece_type == chess.BISHOP:
+            if piece.color == chess.WHITE:
+                score += bishopstable[square]
+            else:
+                score -= bishopstable[chess.square_mirror(square)]
+
+        elif piece.piece_type == chess.ROOK:
+            if piece.color == chess.WHITE:
+                score += rookstable[square]
+            else:
+                score -= rookstable[chess.square_mirror(square)]
+
+        elif piece.piece_type == chess.QUEEN:
+            if piece.color == chess.WHITE:
+                score += queenstable[square]
+            else:
+                score -= queenstable[chess.square_mirror(square)]
+
+        elif piece.piece_type == chess.KING:
+            if piece.color == chess.WHITE:
+                score += kingstable[square]
+            else:
+                score -= kingstable[chess.square_mirror(square)]
     
     return score
 
@@ -46,6 +142,7 @@ def minimax(board, depth, alpha, beta, maximizing_player):
         return evaluate_board(board)
 
     legal_moves = list(board.legal_moves)
+    legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
 
     if maximizing_player:
         max_eval = -float('inf')
@@ -77,12 +174,14 @@ def get_best_move(board, depth):
     
     # We need to run the first layer of the loop here to find WHICH move is best
     # (The minimax function above only returns the Score, not the Move)
-    
+    legal_moves = list(board.legal_moves)
+    legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
+
     is_maximizing = (board.turn == chess.WHITE)
     alpha = -float('inf')
     beta = float('inf')
     
-    for move in board.legal_moves:
+    for move in legal_moves:
         board.push(move)
         # Call minimax for the opponent's turn
         eval = minimax(board, depth - 1, alpha, beta, not is_maximizing)
@@ -100,7 +199,6 @@ def get_best_move(board, depth):
             beta = min(beta, eval)
             
     return best_move
-
 
 
 
@@ -146,7 +244,7 @@ def play_game():
             print("Engine is thinking...")
             
             # 1. Get the move
-            engine_move = get_best_move(board, 3)
+            engine_move = get_best_move(board, 5)
             
             # 2. Make the move
             board.push(engine_move)
